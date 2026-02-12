@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Gifts</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="gifts-page">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <span>👤</span>
+            <span id="studentName">NIKOS PAPADAKIS</span>
+        </div>
+        <h1>STUDENT GIFTS</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Tabs + Search -->
+    <div class="tabs-search">
+        <div class="tabs" id="categoryTabs">
+            <button class="tab active" data-category="">ALL</button>
+            <button class="tab" data-category="food">Food</button>
+            <button class="tab" data-category="tech">Tech</button>
+            <button class="tab" data-category="fitness">Fitness</button>
+            <button class="tab" data-category="fashion">Fashion</button>
+            <button class="tab" data-category="telecom">Telecom</button>
+        </div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search offers..." />
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Sidebar Filters -->
+        <aside class="sidebar">
+            <div class="filter-section">
+                <h3>FILTERS</h3>
+
+                <div class="filter-section">
+                    <h4 style="font-size: 13px; margin-bottom: 8px;">Online / Instore</h4>
+                    <div class="filter-option">
+                        <input type="checkbox" id="filterOnline" value="online">
+                        <label for="filterOnline">Online</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="checkbox" id="filterInstore" value="in-store">
+                        <label for="filterInstore">In-store</label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h4 style="font-size: 13px; margin-bottom: 8px;">Location</h4>
+                    <div class="filter-option">
+                        <input type="checkbox" id="locNationwide" value="nationwide">
+                        <label for="locNationwide">Nationwide</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="checkbox" id="locLocal" value="local">
+                        <label for="locLocal">Local</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="checkbox" id="locOnlineOnly" value="online-only">
+                        <label for="locOnlineOnly">Online-only</label>
+                    </div>
+                </div>
+
+                <div class="filter-section" id="brandsSection">
+                    <h4 style="font-size: 13px; margin-bottom: 8px;">Brands</h4>
+                    <!-- Brand checkboxes will be populated dynamically -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Gifts Grid -->
+        <div class="gifts-grid">
+            <div id="loadingMessage" class="loading">Loading gifts...</div>
+            <div id="giftsContainer" class="cards-container"></div>
+            <div id="paginationContainer" class="pagination"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
