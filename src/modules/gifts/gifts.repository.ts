@@ -153,15 +153,11 @@ export class GiftRepository {
             nextCursor = Buffer.from(cursorValue).toString('base64');
         }
 
-        const page = filters.page;
-
         return {
             data,
             meta: {
-                page,
                 limit,
                 total,
-                totalPages: Math.ceil(total / limit),
                 nextCursor,
             },
         };

@@ -14,17 +14,16 @@ export class GiftController {
      * GET /gifts
      *
      * Query parameters:
-     *   - page (number, default: 1)
      *   - limit (number, default: 10)
      *   - category (string, optional) — e.g. 'food', 'tech', 'fitness'
      *   - offer_type (string, optional) — 'online', 'in-store', 'both'
      *   - location_type (string, optional) — 'nationwide', 'local', 'online-only'
      *   - search (string, optional) — partial match on title or brand name
      *   - sort (string, optional) — 'newest' (default) or 'expiry'
+     *   - cursor (string, optional) — base64-encoded cursor for infinite scroll pagination
      */
     getAll(req: Request, res: Response): void {
-        // Parse and validate pagination params
-        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        // Parse and validate limit
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
 
         // Parse brand filter — supports ?brand=X&brand=Y for multiple brands
@@ -38,7 +37,6 @@ export class GiftController {
 
         // Build the filters object from query params
         const filters: GiftFilters = {
-            page,
             limit,
             category: req.query.category as string | undefined,
             brands,

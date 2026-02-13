@@ -47,7 +47,6 @@ export interface Coupon {
 // ---------- Request / Filter Types ----------
 
 export interface GiftFilters {
-    page: number;
     limit: number;
     category?: string;
     brands?: string[];
@@ -61,10 +60,8 @@ export interface GiftFilters {
 // ---------- Response Types ----------
 
 export interface PaginationMeta {
-    page: number;
     limit: number;
     total: number;
-    totalPages: number;
     nextCursor: string | null;
 }
 
