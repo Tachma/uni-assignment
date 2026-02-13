@@ -17,7 +17,8 @@ getDatabase();
 app.listen(PORT, () => {
     console.log(`[Server] Running on http://localhost:${PORT}`);
     console.log(`[Server] Endpoints:`);
-    console.log(`  POST /auth/login`);
-    console.log(`  GET  /gifts`);
-    console.log(`  POST /gifts/:id/claim`);
+    console.log(`  POST /api/auth/login`);
+    console.log(`  GET  /api/gifts`);
+    console.log(`  POST /api/gifts/:id/claim`);
+    console.log(`  GET  /api/brands`);
 });

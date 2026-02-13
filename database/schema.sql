@@ -7,9 +7,10 @@ PRAGMA foreign_keys = ON;
 
 -- Students table
 CREATE TABLE IF NOT EXISTS students (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    email       TEXT    NOT NULL UNIQUE,
-    password_hash TEXT  NOT NULL
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT    NOT NULL UNIQUE,
+    email         TEXT    NOT NULL UNIQUE,
+    password_hash TEXT    NOT NULL
 );
 
 -- Brands table

@@ -42,6 +42,13 @@ export class GiftRepository {
             params.push(filters.category);
         }
 
+        // Filter by brand names (exact match, supports multiple)
+        if (filters.brands && filters.brands.length > 0) {
+            const placeholders = filters.brands.map(() => '?').join(', ');
+            conditions.push(`b.name IN (${placeholders})`);
+            params.push(...filters.brands);
+        }
+
         // Filter by offer type (exact match)
         if (filters.offer_type) {
             conditions.push('g.offer_type = ?');
@@ -54,10 +61,10 @@ export class GiftRepository {
             params.push(filters.location_type);
         }
 
-        // Search by gift title OR brand name (partial match)
+        // Search by gift title, brand name, OR category (partial match)
         if (filters.search) {
-            conditions.push('(g.title LIKE ? OR b.name LIKE ?)');
-            params.push(`%${filters.search}%`, `%${filters.search}%`);
+            conditions.push('(g.title LIKE ? OR b.name LIKE ? OR g.category LIKE ?)');
+            params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
         }
 
         // Combine all conditions into a WHERE clause
@@ -80,13 +87,36 @@ export class GiftRepository {
         // ---------- Sorting ----------
         // Default: newest first. Alternative: soonest expiry first.
         const orderClause = filters.sort === 'expiry'
-            ? 'ORDER BY g.expiry_date ASC'
-            : 'ORDER BY g.created_at DESC';
+            ? 'ORDER BY g.expiry_date ASC, g.id ASC'
+            : 'ORDER BY g.created_at DESC, g.id DESC';
 
         // ---------- Pagination ----------
-        const page = filters.page;
         const limit = filters.limit;
-        const offset = (page - 1) * limit;
+
+        // Clone params for the data query (cursor adds extra conditions)
+        const dataParams: (string | number)[] = [...params];
+
+        // Cursor-based pagination: decode cursor and add WHERE conditions
+        // The cursor encodes the last item's sort key + id for stable pagination
+        if (filters.cursor) {
+            const decoded = Buffer.from(filters.cursor, 'base64').toString('utf-8');
+            const [cursorDate, cursorId] = decoded.split('|');
+
+            if (filters.sort === 'expiry') {
+                // Ascending order: get items AFTER the cursor
+                conditions.push('(g.expiry_date > ? OR (g.expiry_date = ? AND g.id > ?))');
+                dataParams.push(cursorDate, cursorDate, parseInt(cursorId));
+            } else {
+                // Descending order (newest): get items BEFORE the cursor
+                conditions.push('(g.created_at < ? OR (g.created_at = ? AND g.id < ?))');
+                dataParams.push(cursorDate, cursorDate, parseInt(cursorId));
+            }
+        }
+
+        // Rebuild WHERE clause with cursor conditions included
+        const dataWhereClause = conditions.length > 0
+            ? 'WHERE ' + conditions.join(' AND ')
+            : '';
 
         // ---------- DATA query ----------
         const dataSql = `
@@ -106,13 +136,24 @@ export class GiftRepository {
         b.logo_url   AS brand_logo_url
       FROM gifts g
       JOIN brands b ON g.brand_id = b.id
-      ${whereClause}
+      ${dataWhereClause}
       ${orderClause}
-      LIMIT ? OFFSET ?
+      LIMIT ?
     `;
 
-        // Append pagination params AFTER the filter params
-        const data = db.prepare(dataSql).all(...params, limit, offset) as GiftWithBrand[];
+        const data = db.prepare(dataSql).all(...dataParams, limit) as GiftWithBrand[];
+
+        // Build the nextCursor from the last item in the result set
+        let nextCursor: string | null = null;
+        if (data.length === limit) {
+            const lastItem = data[data.length - 1];
+            const cursorValue = filters.sort === 'expiry'
+                ? `${lastItem.expiry_date}|${lastItem.id}`
+                : `${lastItem.created_at}|${lastItem.id}`;
+            nextCursor = Buffer.from(cursorValue).toString('base64');
+        }
+
+        const page = filters.page;
 
         return {
             data,
@@ -121,6 +162,7 @@ export class GiftRepository {
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit),
+                nextCursor,
             },
         };
     }

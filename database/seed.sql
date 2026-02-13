@@ -6,9 +6,9 @@
 -- Students (password: password123)
 -- Hash generated with bcryptjs, 10 rounds
 -- ============================
-INSERT OR IGNORE INTO students (email, password_hash) VALUES
-    ('student1@university.edu', '$2b$10$y7iMiTW4./Tihk/kAbLUmuzIfdgmC7347Vq4WdvR/o/MPwWldb/b6'),
-    ('student2@university.edu', '$2b$10$y7iMiTW4./Tihk/kAbLUmuzIfdgmC7347Vq4WdvR/o/MPwWldb/b6');
+INSERT OR IGNORE INTO students (username, email, password_hash) VALUES
+    ('student1', 'student1@university.edu', '$2b$10$y7iMiTW4./Tihk/kAbLUmuzIfdgmC7347Vq4WdvR/o/MPwWldb/b6'),
+    ('student2', 'student2@university.edu', '$2b$10$y7iMiTW4./Tihk/kAbLUmuzIfdgmC7347Vq4WdvR/o/MPwWldb/b6');
 
 -- ============================
 -- Brands

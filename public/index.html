@@ -73,6 +73,18 @@
                     <h4 style="font-size: 13px; margin-bottom: 8px;">Brands</h4>
                     <!-- Brand checkboxes will be populated dynamically -->
                 </div>
+
+                <div class="filter-section">
+                    <h4 style="font-size: 13px; margin-bottom: 8px;">Sort By</h4>
+                    <div class="filter-option">
+                        <input type="radio" id="sortNewest" name="sortOrder" value="newest" checked>
+                        <label for="sortNewest">New In</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="radio" id="sortExpiry" name="sortOrder" value="expiry">
+                        <label for="sortExpiry">Ending Soon</label>
+                    </div>
+                </div>
             </div>
         </aside>
 
@@ -80,7 +92,7 @@
         <div class="gifts-grid">
             <div id="loadingMessage" class="loading">Loading gifts...</div>
             <div id="giftsContainer" class="cards-container"></div>
-            <div id="paginationContainer" class="pagination"></div>
+            <div id="scrollLoading" class="loading" style="display: none;">Loading more gifts...</div>
         </div>
     </div>
 

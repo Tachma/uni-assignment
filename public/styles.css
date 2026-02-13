@@ -315,6 +315,14 @@ body {
     cursor: not-allowed;
 }
 
+.btn-claim.claimed {
+    background: #28a745;
+    color: #fff;
+    border-color: #28a745;
+    opacity: 1;
+    cursor: default;
+}
+
 /* Pagination */
 .pagination {
     display: flex;

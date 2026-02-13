@@ -17,8 +17,8 @@ app.use(express.json()); // Parse JSON request bodies
 app.use(express.static('public'));
 
 // ---------- API Routes ----------
-app.use('/auth', authRoutes);
-app.use('/gifts', giftRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/gifts', giftRoutes);
 
 // GET /api/brands — for frontend sidebar filter
 app.get('/api/brands', (_req, res) => {

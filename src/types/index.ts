@@ -6,6 +6,7 @@
 
 export interface Student {
     id: number;
+    username: string;
     email: string;
     password_hash: string;
 }
@@ -49,10 +50,12 @@ export interface GiftFilters {
     page: number;
     limit: number;
     category?: string;
+    brands?: string[];
     offer_type?: string;
     location_type?: string;
     search?: string;
     sort?: 'newest' | 'expiry';
+    cursor?: string;
 }
 
 // ---------- Response Types ----------
@@ -62,6 +65,7 @@ export interface PaginationMeta {
     limit: number;
     total: number;
     totalPages: number;
+    nextCursor: string | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -73,10 +77,11 @@ export interface PaginatedResponse<T> {
 
 export interface JwtPayload {
     studentId: number;
+    username: string;
     email: string;
 }
 
 export interface LoginRequest {
-    email: string;
+    username: string;
     password: string;
 }

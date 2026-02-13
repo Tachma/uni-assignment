@@ -3,13 +3,16 @@
 // ============================================
 
 // State
-let currentPage = 1;
 let currentCategory = '';
 let currentSearch = '';
+let currentSort = 'newest';
 let currentOfferTypes = [];
 let currentLocationTypes = [];
-let currentBrandFilter = '';
 let allBrands = [];
+let nextCursor = null;
+let isLoading = false;
+let hasMore = true;
+let claimedGiftIds = new Set(); // Track which gifts the user has claimed
 
 // Auth guard — redirect to login if no token
 const token = localStorage.getItem('token');
@@ -18,17 +21,17 @@ if (!token) {
 }
 
 // Decode JWT to get student name (simple base64 decode, no validation)
-function getStudentEmail() {
+function getStudentName() {
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.email || 'Student';
+        return payload.username || 'Student';
     } catch {
         return 'Student';
     }
 }
 
 // Display student name
-document.getElementById('studentName').textContent = getStudentEmail().split('@')[0].toUpperCase();
+document.getElementById('studentName').textContent = getStudentName().toUpperCase();
 
 // Logout
 function logout() {
@@ -77,8 +80,7 @@ function renderBrandFilters() {
     // Add change listeners
     document.querySelectorAll('.brand-checkbox').forEach(cb => {
         cb.addEventListener('change', () => {
-            currentPage = 1;
-            loadGifts();
+            resetAndLoad();
         });
     });
 }
@@ -86,36 +88,54 @@ function renderBrandFilters() {
 // Build query string from current filters
 function buildQueryString() {
     const params = new URLSearchParams();
-    params.append('page', currentPage);
     params.append('limit', 9); // 3x3 grid
 
     if (currentCategory) params.append('category', currentCategory);
     if (currentSearch) params.append('search', currentSearch);
+    if (currentSort) params.append('sort', currentSort);
     if (currentOfferTypes.length > 0) params.append('offer_type', currentOfferTypes[0]);
     if (currentLocationTypes.length > 0) params.append('location_type', currentLocationTypes[0]);
 
-    // Brand filter uses search
+    // Brand filter — append each checked brand separately for multi-brand support
     const checkedBrands = Array.from(document.querySelectorAll('.brand-checkbox:checked'));
-    if (checkedBrands.length > 0) {
-        // Just search for the first checked brand
-        params.set('search', checkedBrands[0].value);
+    checkedBrands.forEach(cb => {
+        params.append('brand', cb.value);
+    });
+
+    // Cursor-based pagination for infinite scroll
+    if (nextCursor) {
+        params.append('cursor', nextCursor);
     }
 
     return params.toString();
 }
 
-// Load gifts from API
+// Reset state and reload gifts (called when filters change)
+function resetAndLoad() {
+    nextCursor = null;
+    hasMore = true;
+    document.getElementById('giftsContainer').innerHTML = '';
+    loadGifts();
+}
+
+// Load gifts from API (appends to existing content for infinite scroll)
 async function loadGifts() {
+    if (isLoading || !hasMore) return;
+    isLoading = true;
+
     const container = document.getElementById('giftsContainer');
     const loading = document.getElementById('loadingMessage');
-    const paginationContainer = document.getElementById('paginationContainer');
+    const scrollLoading = document.getElementById('scrollLoading');
 
-    loading.style.display = 'block';
-    container.innerHTML = '';
-    paginationContainer.innerHTML = '';
+    // Show initial loading only on first load
+    if (!nextCursor) {
+        loading.style.display = 'block';
+    } else {
+        scrollLoading.style.display = 'block';
+    }
 
     try {
-        const response = await fetch(`/gifts?${buildQueryString()}`);
+        const response = await fetch(`/api/gifts?${buildQueryString()}`);
 
         if (response.status === 401) {
             logout();
@@ -124,22 +144,33 @@ async function loadGifts() {
 
         const result = await response.json();
         loading.style.display = 'none';
+        scrollLoading.style.display = 'none';
 
-        if (result.data.length === 0) {
+        if (!nextCursor && result.data.length === 0) {
             container.innerHTML = '<p style="padding: 40px; text-align: center; color: #666;">No gifts found.</p>';
+            hasMore = false;
+            isLoading = false;
             return;
         }
 
         renderGifts(result.data);
-        renderPagination(result.meta);
+
+        // Update cursor for next page
+        nextCursor = result.meta.nextCursor;
+        hasMore = nextCursor !== null;
 
     } catch (error) {
         loading.style.display = 'none';
-        container.innerHTML = '<p style="padding: 40px; text-align: center; color: #c00;">Failed to load gifts.</p>';
+        scrollLoading.style.display = 'none';
+        if (!nextCursor) {
+            container.innerHTML = '<p style="padding: 40px; text-align: center; color: #c00;">Failed to load gifts.</p>';
+        }
     }
+
+    isLoading = false;
 }
 
-// Render gift cards
+// Render gift cards (appends to container for infinite scroll)
 function renderGifts(gifts) {
     const container = document.getElementById('giftsContainer');
 
@@ -148,6 +179,7 @@ function renderGifts(gifts) {
         card.className = 'gift-card';
 
         const expiryDate = gift.expiry_date ? new Date(gift.expiry_date).toLocaleDateString() : 'No expiry';
+        const isClaimed = claimedGiftIds.has(gift.id);
 
         card.innerHTML = `
             <div class="gift-card-image">[IMAGE]</div>
@@ -157,7 +189,12 @@ function renderGifts(gifts) {
                 <div class="gift-card-description">${gift.description || ''}</div>
                 <div class="gift-card-terms">${gift.terms || ''}</div>
                 <div class="gift-card-brand">${gift.brand_name}</div>
-                <button class="btn-claim" onclick="claimGift(${gift.id})">Claim</button>
+                <button
+                    class="btn-claim${isClaimed ? ' claimed' : ''}"
+                    id="claim-btn-${gift.id}"
+                    onclick="claimGift(${gift.id})"
+                    ${isClaimed ? 'disabled' : ''}
+                >${isClaimed ? 'Claimed' : 'Claim'}</button>
             </div>
         `;
 
@@ -165,26 +202,10 @@ function renderGifts(gifts) {
     });
 }
 
-// Render pagination
-function renderPagination(meta) {
-    const container = document.getElementById('paginationContainer');
-
-    for (let i = 1; i <= meta.totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.className = `page-btn ${i === meta.page ? 'active' : ''}`;
-        btn.textContent = i;
-        btn.onclick = () => {
-            currentPage = i;
-            loadGifts();
-        };
-        container.appendChild(btn);
-    }
-}
-
 // Claim a gift
 async function claimGift(giftId) {
     try {
-        const response = await fetch(`/gifts/${giftId}/claim`, {
+        const response = await fetch(`/api/gifts/${giftId}/claim`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -195,6 +216,24 @@ async function claimGift(giftId) {
 
         if (response.ok) {
             showMessage('Gift claimed successfully!', 'success');
+            // Mark as claimed and update the button
+            claimedGiftIds.add(giftId);
+            const btn = document.getElementById(`claim-btn-${giftId}`);
+            if (btn) {
+                btn.textContent = 'Claimed';
+                btn.disabled = true;
+                btn.classList.add('claimed');
+            }
+        } else if (response.status === 409) {
+            // Already claimed — update UI to reflect
+            claimedGiftIds.add(giftId);
+            const btn = document.getElementById(`claim-btn-${giftId}`);
+            if (btn) {
+                btn.textContent = 'Claimed';
+                btn.disabled = true;
+                btn.classList.add('claimed');
+            }
+            showMessage('You have already claimed this gift', 'error');
         } else {
             showMessage(data.error || 'Failed to claim gift', 'error');
         }
@@ -212,8 +251,7 @@ document.getElementById('categoryTabs').addEventListener('click', (e) => {
 
         // Update filter
         currentCategory = e.target.dataset.category;
-        currentPage = 1;
-        loadGifts();
+        resetAndLoad();
     }
 });
 
@@ -223,24 +261,31 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         currentSearch = e.target.value.trim();
-        currentPage = 1;
-        loadGifts();
+        resetAndLoad();
     }, 500); // Debounce 500ms
+});
+
+// Sort radio buttons
+document.querySelectorAll('input[name="sortOrder"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        currentSort = e.target.value;
+        resetAndLoad();
+    });
 });
 
 // Offer type checkboxes
 document.getElementById('filterOnline').addEventListener('change', (e) => {
     currentOfferTypes = e.target.checked ? ['online'] : [];
-    currentPage = 1;
-    loadGifts();
+    // Uncheck the other
+    if (e.target.checked) document.getElementById('filterInstore').checked = false;
+    resetAndLoad();
 });
 
 document.getElementById('filterInstore').addEventListener('change', (e) => {
     currentOfferTypes = e.target.checked ? ['in-store'] : [];
-    currentPage = 1;
     // Uncheck the other
-    document.getElementById('filterOnline').checked = false;
-    loadGifts();
+    if (e.target.checked) document.getElementById('filterOnline').checked = false;
+    resetAndLoad();
 });
 
 // Location type checkboxes
@@ -257,9 +302,21 @@ document.getElementById('filterInstore').addEventListener('change', (e) => {
         } else {
             currentLocationTypes = [];
         }
-        currentPage = 1;
-        loadGifts();
+        resetAndLoad();
     });
+});
+
+// Infinite scroll — load more when near bottom
+window.addEventListener('scroll', () => {
+    if (isLoading || !hasMore) return;
+
+    const scrollY = window.scrollY + window.innerHeight;
+    const docHeight = document.documentElement.scrollHeight;
+
+    // Trigger load when within 200px of bottom
+    if (scrollY >= docHeight - 200) {
+        loadGifts();
+    }
 });
 
 // Initialize

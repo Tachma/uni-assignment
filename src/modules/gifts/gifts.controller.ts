@@ -27,15 +27,26 @@ export class GiftController {
         const page = Math.max(1, parseInt(req.query.page as string) || 1);
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
 
+        // Parse brand filter — supports ?brand=X&brand=Y for multiple brands
+        const brandParam = req.query.brand;
+        let brands: string[] | undefined;
+        if (brandParam) {
+            brands = Array.isArray(brandParam)
+                ? brandParam as string[]
+                : [brandParam as string];
+        }
+
         // Build the filters object from query params
         const filters: GiftFilters = {
             page,
             limit,
             category: req.query.category as string | undefined,
+            brands,
             offer_type: req.query.offer_type as string | undefined,
             location_type: req.query.location_type as string | undefined,
             search: req.query.search as string | undefined,
             sort: (req.query.sort as string) === 'expiry' ? 'expiry' : 'newest',
+            cursor: req.query.cursor as string | undefined,
         };
 
         const result = giftService.getAll(filters);
