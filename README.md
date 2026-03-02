@@ -5,7 +5,7 @@ A full-stack web application that allows students to browse and claim exclusive 
 ## 📋 Overview
 
 This application provides a platform where students can:
-- Register and login with authentication
+- Login with authentication
 - Browse available gift offers from multiple brands
 - Claim exclusive coupons (one per gift per student)
 - View gift details including terms, categories, and availability
